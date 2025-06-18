@@ -1,5 +1,5 @@
-import { Client, Databases, Query, Storage, ID } from 'node-appwrite';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+const { Client, Databases, Query, Storage, ID } = require('node-appwrite');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const client = new Client();
 const endpoint = process.env.APPWRITE_FUNCTION_ENDPOINT || 'https://cloud.appwrite.io/v1';
@@ -169,7 +169,7 @@ Return ONLY valid JSON:
     const analysis = JSON.parse(cleanedJson);
     
     // Validate required fields
-    const requiredFields = ['overallScore', 'strengths', 'weaknesses', 'profileVsCvGPs', 'recommendations'];
+    const requiredFields = ['overallScore', 'strengths', 'weaknesses', 'profileVsCvGaps', 'recommendations'];
     for (const field of requiredFields) {
       if (!analysis[field]) {
         throw new Error(`Missing required field: ${field}`);
@@ -235,8 +235,8 @@ function generateFallbackAnalysis(talent, careerPath) {
   };
 }
 
-// Main function export - note the different export syntax
-export default async function({ req, res, log, error }) {
+// Main function export using CommonJS
+module.exports = async function({ req, res, log, error }) {
   const startTime = Date.now();
   let uploadedFileId = null;
   
@@ -401,4 +401,4 @@ export default async function({ req, res, log, error }) {
       executionTime: Date.now() - startTime
     }, 500);
   }
-}
+};
