@@ -1,4 +1,3 @@
-// Fixed imports for Appwrite function
 import { Client, Databases, Query, Storage, ID } from 'node-appwrite';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
