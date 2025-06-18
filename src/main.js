@@ -454,35 +454,36 @@ module.exports = async function({ req, res, log, error }) {
     }
 
     // Fetch talent information
-    let talent;
-    try {
-      log(`Fetching talent with ID: ${talentId}`);
-      const talentQuery = await databases.listDocuments(
-        config.databaseId,
-        config.talentsCollectionId,
-        [Query.equal('talentId', talentId)]
-      );
+    // Fetch talent information
+let talent;
+try {
+  log(`Fetching talent with ID: ${talentId}`);
+  const talentQuery = await databases.listDocuments(
+    config.databaseId,
+    config.talentsCollectionId,
+    [Query.equal('talentId', talentId)] // Changed from Query.equal('$id', talentId)
+  );
 
-      if (talentQuery.documents.length === 0) {
-        log(`Talent not found with ID: ${talentId}`);
-        return res.json({ 
-          success: false, 
-          error: 'Talent profile not found', 
-          statusCode: 404 
-        }, 404);
-      }
+  if (talentQuery.documents.length === 0) {
+    log(`Talent not found with ID: ${talentId}`);
+    return res.json({ 
+      success: false, 
+      error: 'Talent profile not found', 
+      statusCode: 404 
+    }, 404);
+  }
 
-      talent = talentQuery.documents[0];
-      log(`Successfully fetched talent: ${talent.fullname} (${talent.careerStage})`);
-      
-    } catch (dbError) {
-      error('Database error fetching talent:', dbError);
-      return res.json({ 
-        success: false, 
-        error: 'Failed to fetch talent information', 
-        statusCode: 500 
-      }, 500);
-    }
+  talent = talentQuery.documents[0];
+  log(`Successfully fetched talent: ${talent.fullname} (${talent.careerStage})`);
+  
+} catch (dbError) {
+  error('Database error fetching talent:', dbError);
+  return res.json({ 
+    success: false, 
+    error: 'Failed to fetch talent information', 
+    statusCode: 500 
+  }, 500);
+}
 
     // Fetch career path if selected
     let careerPath = null;
