@@ -1,3 +1,4 @@
+// Fixed imports for Appwrite function
 import { Client, Databases, Query, Storage, ID } from 'node-appwrite';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -169,7 +170,7 @@ Return ONLY valid JSON:
     const analysis = JSON.parse(cleanedJson);
     
     // Validate required fields
-    const requiredFields = ['overallScore', 'strengths', 'weaknesses', 'profileVsCvGaps', 'recommendations'];
+    const requiredFields = ['overallScore', 'strengths', 'weaknesses', 'profileVsCvGPs', 'recommendations'];
     for (const field of requiredFields) {
       if (!analysis[field]) {
         throw new Error(`Missing required field: ${field}`);
@@ -235,7 +236,8 @@ function generateFallbackAnalysis(talent, careerPath) {
   };
 }
 
-export default async ({ req, res, log, error }) => {
+// Main function export - note the different export syntax
+export default async function({ req, res, log, error }) {
   const startTime = Date.now();
   let uploadedFileId = null;
   
@@ -400,4 +402,4 @@ export default async ({ req, res, log, error }) => {
       executionTime: Date.now() - startTime
     }, 500);
   }
-};
+}
