@@ -160,6 +160,31 @@ async function analyzeCVContent(cvText, talent, careerPath) {
     const talentCertifications = talent.certifications || [];
     const talentInterests = talent.interests || [];
 
+    // Define career stage expectations
+    const careerStageExpectations = {
+      'Pathfinder': {
+        expectedExperience: '0-2 years',
+        typicalRoles: 'Entry-level, intern, junior positions',
+        focusAreas: 'Learning foundational skills, gaining initial experience',
+        skillExpectation: 'Basic to intermediate skills',
+        educationFocus: 'Recent graduate or currently studying'
+      },
+      'Trailblazer': {
+        expectedExperience: '2-8 years',
+        typicalRoles: 'Mid-level, senior positions, team lead roles',
+        focusAreas: 'Skill advancement, leadership development, specialization',
+        skillExpectation: 'Intermediate to advanced skills with some specializations',
+        educationFocus: 'Established education, possibly pursuing additional certifications'
+      },
+      'Horizon Changer': {
+        expectedExperience: '3+ years in previous field, 0-2 years in new field',
+        typicalRoles: 'Career transition roles, leveraging transferable skills',
+        focusAreas: 'Skill transfer, retraining, adapting experience to new field',
+        skillExpectation: 'Strong skills in previous field, developing skills in new field',
+        educationFocus: 'Possible additional training, certifications for career change'
+      }
+    };
+
     // Prepare career path data
     const careerPathInfo = careerPath ? {
       title: careerPath.title,
@@ -169,14 +194,17 @@ async function analyzeCVContent(cvText, talent, careerPath) {
       toolsAndTechnologies: careerPath.toolsAndTechnologies || []
     } : null;
 
-    const prompt = `Analyze this CV content comprehensively against the user's profile and career path requirements. Provide detailed, actionable insights.
+    const currentStageExpectations = careerStageExpectations[talent.careerStage] || careerStageExpectations['Pathfinder'];
+
+    const prompt = `Analyze this CV content comprehensively against the user's profile and career path requirements. Pay special attention to career stage alignment and provide detailed, actionable insights.
 
 CV CONTENT:
 ${cvText}
 
 USER PROFILE INFORMATION:
 - Name: ${talent.fullname}
-- Career Stage: ${talent.careerStage}
+- Career Stage: ${talent.careerStage} 
+- Career Stage Expectations: ${JSON.stringify(currentStageExpectations)}
 - Skills Listed in Profile: ${talentSkills.length ? talentSkills.join(', ') : 'None listed'}
 - Educational Background in Profile: ${talentDegrees.length ? talentDegrees.join(', ') : 'None listed'}
 - Certifications in Profile: ${talentCertifications.length ? talentCertifications.join(', ') : 'None listed'}
@@ -189,10 +217,29 @@ ${careerPathInfo ? `SELECTED CAREER PATH:
 - Suggested Educational Background: ${careerPathInfo.suggestedDegrees.length ? careerPathInfo.suggestedDegrees.join(', ') : 'Not specified'}
 - Key Tools & Technologies: ${careerPathInfo.toolsAndTechnologies.length ? careerPathInfo.toolsAndTechnologies.join(', ') : 'Not specified'}` : 'NO CAREER PATH SELECTED - Provide general analysis'}
 
+ANALYSIS INSTRUCTIONS:
+1. Carefully evaluate if the CV experience level matches the declared career stage (${talent.careerStage})
+2. For Pathfinders: Look for entry-level experience, internships, fresh graduate indicators
+3. For Trailblazers: Look for progressive career growth, mid to senior-level roles, leadership experience
+4. For Horizon Changers: Look for substantial experience in one field and transition indicators to a new field
+
 Please analyze and return ONLY a valid JSON object with this exact structure:
 
 {
   "overallScore": 85,
+  "careerStageAlignment": {
+    "alignmentScore": 90,
+    "isAppropriateForStage": true,
+    "experienceLevel": "Matches Trailblazer expectations with 4+ years experience",
+    "stageJustification": "CV shows clear career progression from junior to senior roles",
+    "recommendations": [
+      "Experience level aligns well with Trailblazer stage",
+      "Consider highlighting leadership experiences more prominently"
+    ],
+    "redFlags": [
+      "No significant red flags - experience matches declared stage"
+    ]
+  },
   "strengths": [
     "Strong technical foundation with relevant programming languages",
     "Excellent educational background aligned with career goals",
@@ -262,8 +309,14 @@ Please analyze and return ONLY a valid JSON object with this exact structure:
 
 Scoring Guidelines:
 - Overall Score: 0-100 based on completeness, relevance, and market readiness
-- Alignment Score: 0-100 based on how well CV matches career path requirements
+- Career Stage Alignment Score: 0-100 based on how well CV experience matches declared career stage
+- Career Path Alignment Score: 0-100 based on how well CV matches career path requirements  
 - Marketability Score: 0-100 based on competitive positioning in job market
+
+CRITICAL: Pay special attention to career stage alignment:
+- Flag any major discrepancies between declared stage and actual experience
+- Provide specific feedback on whether the experience level is appropriate
+- Give actionable advice for stage-appropriate development
 
 Ensure all arrays contain specific, actionable items and scores are realistic and well-justified.`;
 
@@ -276,8 +329,8 @@ Ensure all arrays contain specific, actionable items and scores are realistic an
     
     // Validate required fields exist
     const requiredFields = [
-      'overallScore', 'strengths', 'weaknesses', 'profileVsCvGaps', 
-      'recommendations', 'nextSteps', 'marketability'
+      'overallScore', 'careerStageAlignment', 'strengths', 'weaknesses', 
+      'profileVsCvGaps', 'recommendations', 'nextSteps', 'marketability'
     ];
     
     for (const field of requiredFields) {
@@ -286,20 +339,29 @@ Ensure all arrays contain specific, actionable items and scores are realistic an
       }
     }
 
-    // Validate score ranges
-    if (analysis.overallScore < 0 || analysis.overallScore > 100) {
-      analysis.overallScore = Math.max(0, Math.min(100, analysis.overallScore));
-    }
-    
-    if (analysis.marketability?.score < 0 || analysis.marketability?.score > 100) {
-      analysis.marketability.score = Math.max(0, Math.min(100, analysis.marketability.score || 50));
-    }
+    // Validate and correct score ranges
+    const scoreFields = [
+      { path: 'overallScore', min: 0, max: 100 },
+      { path: 'careerStageAlignment.alignmentScore', min: 0, max: 100 },
+      { path: 'careerPathAlignment.alignmentScore', min: 0, max: 100 },
+      { path: 'marketability.score', min: 0, max: 100 }
+    ];
 
-    if (analysis.careerPathAlignment?.alignmentScore < 0 || analysis.careerPathAlignment?.alignmentScore > 100) {
-      if (analysis.careerPathAlignment) {
-        analysis.careerPathAlignment.alignmentScore = Math.max(0, Math.min(100, analysis.careerPathAlignment.alignmentScore));
+    scoreFields.forEach(({ path, min, max }) => {
+      const keys = path.split('.');
+      let obj = analysis;
+      
+      // Navigate to nested object
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!obj[keys[i]]) obj[keys[i]] = {};
+        obj = obj[keys[i]];
       }
-    }
+      
+      const lastKey = keys[keys.length - 1];
+      if (obj[lastKey] !== undefined) {
+        obj[lastKey] = Math.max(min, Math.min(max, obj[lastKey]));
+      }
+    });
     
     return analysis;
     
@@ -318,13 +380,67 @@ Ensure all arrays contain specific, actionable items and scores are realistic an
 function generateFallbackAnalysis(talent, careerPath) {
   const baseScore = 65;
   
+  // Career stage specific messaging
+  const stageSpecificContent = {
+    'Pathfinder': {
+      strengths: [
+        "Clear career direction as a Pathfinder seeking initial experience",
+        "Appropriate stage for skill development and learning",
+        "Good foundation for entry-level positions"
+      ],
+      recommendations: [
+        "Focus on building foundational skills for your chosen field",
+        "Seek internships or entry-level positions to gain experience",
+        "Consider online courses or certifications to strengthen your profile"
+      ],
+      alignmentScore: 70
+    },
+    'Trailblazer': {
+      strengths: [
+        "Career progression mindset appropriate for skill advancement",
+        "Ready for mid-level challenges and leadership opportunities",
+        "Good foundation for specialization and expertise development"
+      ],
+      recommendations: [
+        "Focus on advanced skills and specialization in your field",
+        "Seek leadership or mentoring opportunities",
+        "Consider advanced certifications to demonstrate expertise"
+      ],
+      alignmentScore: 60
+    },
+    'Horizon Changer': {
+      strengths: [
+        "Valuable experience from previous career to leverage",
+        "Mature approach to career transition and change",
+        "Transferable skills that can benefit new field"
+      ],
+      recommendations: [
+        "Highlight transferable skills from your previous career",
+        "Identify skill gaps specific to your new chosen field",
+        "Consider bridge training or certifications for career transition"
+      ],
+      alignmentScore: 55
+    }
+  };
+
+  const stageContent = stageSpecificContent[talent.careerStage] || stageSpecificContent['Pathfinder'];
+  
   return {
     overallScore: baseScore,
-    strengths: [
-      "Profile shows clear career direction and purpose",
-      `Appropriate skill set for ${talent.careerStage} career stage`,
-      "Demonstrates commitment to professional development"
-    ],
+    careerStageAlignment: {
+      alignmentScore: stageContent.alignmentScore,
+      isAppropriateForStage: true,
+      experienceLevel: `Analysis limited - declared as ${talent.careerStage}`,
+      stageJustification: "Could not perform detailed experience validation at this time",
+      recommendations: [
+        "Complete CV analysis needed to validate career stage alignment",
+        "Ensure CV clearly shows experience level appropriate for your stage"
+      ],
+      redFlags: [
+        "Unable to verify experience level against declared career stage"
+      ]
+    },
+    strengths: stageContent.strengths,
     weaknesses: [
       "Unable to fully analyze CV content due to technical limitations",
       "Limited visibility into detailed work experience",
@@ -357,23 +473,24 @@ function generateFallbackAnalysis(talent, careerPath) {
       additionalRequirements: ["Select a career path for targeted guidance"]
     },
     recommendations: [
+      ...stageContent.recommendations,
       "Ensure CV is in a clear, readable format (PDF recommended)",
       "Update your profile with complete and accurate information",
-      careerPath ? `Focus on developing required skills for ${careerPath.title}` : "Consider selecting a career path for targeted recommendations",
       "Try re-uploading your CV if the format may have caused issues"
     ],
     nextSteps: [
       "Re-attempt CV upload with optimized file format",
       "Complete all sections of your professional profile",
       "Review and update your skills and certifications list",
-      "Consider career path selection for personalized guidance"
+      careerPath ? `Focus development on ${careerPath.title} requirements` : "Consider career path selection for personalized guidance"
     ],
     marketability: {
       score: 55,
-      summary: "Basic assessment available - complete CV analysis needed for detailed insights",
+      summary: `Basic assessment for ${talent.careerStage} stage - complete CV analysis needed for detailed insights`,
       competitiveAdvantages: [
         "Professional profile information available",
-        "Clear career stage identification"
+        `Clear ${talent.careerStage} career stage identification`,
+        "Structured approach to career development"
       ],
       improvementAreas: [
         "Need comprehensive CV analysis",
