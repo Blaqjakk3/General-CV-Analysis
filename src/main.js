@@ -143,7 +143,7 @@ Return only the extracted text content, maintaining the logical structure where 
 async function analyzeCVContent(cvText, talent, careerPath) {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       generationConfig: { 
         maxOutputTokens: 3000, 
         temperature: 0.5 
