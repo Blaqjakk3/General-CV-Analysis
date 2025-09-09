@@ -1,3 +1,22 @@
+/**
+ * General CV Analysis Function
+ * 
+ * This serverless function receives a CV file (base64), a file name, and a talent ID.
+ * It performs the following steps:
+ *   1. Validates input and environment variables.
+ *   2. Fetches the talent profile and (optionally) the selected career path from Appwrite Database.
+ *   3. Uploads the CV file to Appwrite Storage (temporarily).
+ *   4. Extracts text from the CV using Gemini AI (Google Generative AI).
+ *   5. Analyzes the extracted text against the user's profile and career path using Gemini AI.
+ *   6. Returns a structured JSON analysis with scores, strengths, weaknesses, recommendations, etc.
+ *   7. If AI analysis fails, provides a fallback analysis based on available profile data.
+ *   8. Cleans up temporary files and returns a detailed response.
+ * 
+ * The function is designed for use in a serverless environment (e.g., Appwrite Functions).
+ * 
+ * Key dependencies: node-appwrite, @google/generative-ai
+ */
+
 const { Client, Databases, Query, Storage, ID } = require('node-appwrite');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
